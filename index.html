@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Personalize seu cartão de Heróis (versão mobile)</title>
+    <style>
+        :root {
+            --red: #ff3c3c; --mago: #bf00ff; --tank: #ff8c00; 
+            --lutador: #00ffff; --assassino: #ff0000; --especial: #ffffff;
+            --accent: var(--red);
+        }
+
+        * { box-sizing: border-box; }
+        body { background: #050505; color: white; font-family: monospace; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+        /* LISTA SUPERIOR */
+        .header { background: #000; border-bottom: 2px solid var(--accent); padding: 5px; flex-shrink: 0; }
+        .lista { display: flex; gap: 8px; overflow-x: auto; padding: 5px; min-height: 55px; scrollbar-width: none; }
+        .agente-thumb { flex: 0 0 85px; padding: 6px; border: 1px solid #333; background: #111; font-size: 8px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .agente-thumb.active { border-color: var(--accent); box-shadow: inset 0 0 8px var(--accent); }
+
+        .main { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; width: 100%; max-width: 320px; margin-bottom: 10px; }
+        .btn { background: #000; border: 1px solid var(--accent); color: var(--accent); padding: 8px; font-size: 9px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn:active { background: var(--accent); color: #000; }
+
+        /* CARD */
+        .card { width: 100%; max-width: 320px; background: #0d0d0d; border: 1px solid var(--accent); padding: 12px; transition: 0.3s; }
+        .foto-box { 
+            width: 180px; height: 240px; margin: 0 auto 10px auto; 
+            border: 1px solid var(--accent); background-size: cover; background-position: center; 
+            background-color: #111; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #444;
+        }
+
+        .input-nome { width: 100%; background: none; border: none; border-bottom: 1px solid var(--accent); font-size: 18px; text-align: center; color: var(--accent); margin-bottom: 10px; outline: none; text-transform: uppercase; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        label { font-size: 7px; color: #888; display: block; margin-bottom: 2px; }
+
+        input, select, textarea { width: 100%; background: #151515; border: 1px solid #333; color: #fff; padding: 6px; margin-bottom: 6px; font-size: 11px; font-family: monospace; outline: none; }
+        
+        textarea { min-height: 85px; resize: none; margin-top: 10px; border-color: #444; }
+
+        /* BARRINHAS */
+        .stats-cont { font-size: 8px; margin: 5px 0; }
+        .bar-bg { background: #222; height: 6px; width: 100%; margin: 3px 0; }
+        .bar-fill { background: var(--accent); height: 100%; transition: 0.2s; }
+        
+        input[type=range] { margin: 10px 0; cursor: pointer; accent-color: var(--accent); width: 100%; }
+
+        /* ESTADOS */
+        .kia { filter: grayscale(1) brightness(0.4); border-color: #444 !important; }
+        .c-mago { --accent: var(--mago); } .c-tank { --accent: var(--tank); }
+        .c-lutador { --accent: var(--lutador); } .c-assassino { --accent: var(--assassino); }
+        .c-especial { --accent: var(--especial); }
+    </style>
+</head>
+<body id="b">
+
+    <div class="header">
+        <div id="lista" class="lista"></div>
+        <button class="btn" onclick="novo()" style="width:100%; margin-top:5px; border-color:#fff; color:#fff;">+ NOVO RECRUTA</button>
+    </div>
+
+    <div class="main">
+        <div class="btn-group">
+            <button class="btn" id="btnSalvar" onclick="salvar()">GUARDAR</button>
+            <button class="btn" id="bkia" onclick="togKia()">STATUS: ATIVO</button>
+            <button class="btn" onclick="apagar()">ELIMINAR</button>
+        </div>
+
+        <div class="card" id="card">
+            <input type="file" id="fIn" accept="image/*" style="display:none" onchange="preparaFoto(this)">
+            <div class="foto-box" id="f" onclick="document.getElementById('fIn').click()">[ FOTO 3:4 ]</div>
+            
+            <input type="text" id="n" class="input-nome" placeholder="NOME DO AGENTE">
+            
+            <div class="grid">
+                <div><label>CLASSE</label>
+                    <select id="cl" onchange="aplicarPreset()">
+                        <option value="">---</option>
+                        <option value="mago">MAGO</option>
+                        <option value="tank">TANK</option>
+                        <option value="lutador">LUTADOR</option>
+                        <option value="assassino">ASSASSINO</option>
+                        <option value="especial">ESPECIAL(???)</option>
+                    </select>
+                </div>
+                <div><label>Habilidade Principal</label><input type="text" id="pb" placeholder="DESCREVER..."></div>
+            </div>
+
+            <div class="grid">
+                <div><label>IDADE</label><input type="number" id="idat"></div>
+                <div><label>ESTADO CIVIL</label>
+                    <select id="cv">
+                        <option value="desconhecido">DESCONHECIDO</option>
+                        <option value="solteiro">SOLTEIRO(A)</option>
+                        <option value="casado">CASADO(A)</option>
+                        <option value="divorciado">DIVORCIADO(A)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="stats-cont">
+                NÍVEL DE COMBATE: <span id="valNivel">50</span>%
+                <input type="range" id="nv" min="0" max="100" value="50" oninput="att()">
+                ATK: <span id="tn">50%</span> <div class="bar-bg"><div class="bar-fill" id="ba"></div></div>
+                DEF: <span id="td">50%</span> <div class="bar-bg"><div class="bar-fill" id="bd"></div></div>
+            </div>
+
+            <textarea id="bio" placeholder="BIOGRAFIA / OBSERVAÇÕES..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        let agentes = JSON.parse(localStorage.getItem('NEX_DB') || '[]');
+        let atual = null;
+        let fotoData = "";
+        let isKia = false;
+
+        function preparaFoto(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 450; canvas.height = 600; 
+                    const ctx = canvas.getContext('2d');
+                    let r = Math.max(canvas.width/img.width, canvas.height/img.height);
+                    ctx.drawImage(img, (canvas.width-img.width*r)/2, (canvas.height-img.height*r)/2, img.width*r, img.height*r);
+                    fotoData = canvas.toDataURL('image/jpeg', 0.8);
+                    document.getElementById('f').style.backgroundImage = `url(${fotoData})`;
+                    document.getElementById('f').innerHTML = "";
+                    input.value = ""; 
+                    // Salva automaticamente ao mudar a foto
+                    salvar();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function aplicarPreset() {
+            const classe = document.getElementById('cl').value;
+            const slider = document.getElementById('nv');
+            if (classe === "mago") slider.value = 80;
+            else if (classe === "tank") slider.value = 20;
+            else if (classe === "lutador") slider.value = 50;
+            else if (classe === "assassino") slider.value = 95;
+            else if (classe === "especial") slider.value = 100;
+            att();
+        }
+
+        function salvar() {
+            const nome = document.getElementById('n').value;
+            const btn = document.getElementById('btnSalvar');
+            
+            if(!nome) return; // Não salva sem nome, mas não mostra pop-up
+
+            // Efeito visual de "Aguarde"
+            btn.innerText = "AGUARDE...";
+            btn.style.opacity = "0.5";
+
+            const obj = {
+                id: atual || Date.now(),
+                n: nome,
+                cl: document.getElementById('cl').value,
+                pb: document.getElementById('pb').value,
+                idat: document.getElementById('idat').value,
+                cv: document.getElementById('cv').value,
+                nv: document.getElementById('nv').value,
+                bio: document.getElementById('bio').value,
+                ft: fotoData,
+                kia: isKia
+            };
+
+            const index = agentes.findIndex(a => a.id === obj.id);
+            if(index > -1) agentes[index] = obj;
+            else { agentes.push(obj); atual = obj.id; }
+
+            localStorage.setItem('NEX_DB', JSON.stringify(agentes));
+            render();
+
+            // Restaura o botão após meio segundo
+            setTimeout(() => {
+                btn.innerText = "GUARDAR";
+                btn.style.opacity = "1";
+            }, 500);
+        }
+
+        function render() {
+            const lista = document.getElementById('lista');
+            lista.innerHTML = agentes.map(a => `
+                <div class="agente-thumb ${a.id === atual ? 'active' : ''}" onclick="carregar(${a.id})">
+                    ${a.n.substring(0,8) || '--'}<br><b>${a.kia ? 'KIA' : (a.cl || '--')}</b>
+                </div>
+            `).join('');
+        }
+
+        function carregar(id) {
+            const a = agentes.find(x => x.id === id);
+            if(!a) return;
+            atual = a.id;
+            document.getElementById('n').value = a.n;
+            document.getElementById('cl').value = a.cl;
+            document.getElementById('pb').value = a.pb || "";
+            document.getElementById('idat').value = a.idat || "";
+            document.getElementById('cv').value = a.cv || "desconhecido";
+            document.getElementById('nv').value = a.nv || 50;
+            document.getElementById('bio').value = a.bio || "";
+            fotoData = a.ft || "";
+            document.getElementById('f').style.backgroundImage = fotoData ? `url(${fotoData})` : "";
+            document.getElementById('f').innerHTML = fotoData ? "" : "[ FOTO 3:4 ]";
+            isKia = a.kia || false;
+            att(); render();
+        }
+
+        function att() {
+            const c = document.getElementById('cl').value;
+            const n = parseInt(document.getElementById('nv').value);
+            document.getElementById('b').className = c ? 'c-' + c : '';
+            document.getElementById('valNivel').innerText = n;
+
+            let atk, def;
+            if (c === "especial") { atk = n; def = n; } 
+            else { atk = n; def = 100 - n; }
+
+            document.getElementById('ba').style.width = atk + "%";
+            document.getElementById('bd').style.width = def + "%";
+            document.getElementById('tn').innerText = atk + "%";
+            document.getElementById('td').innerText = def + "%";
+            
+            document.getElementById('card').className = isKia ? 'card kia' : 'card';
+            document.getElementById('bkia').innerText = isKia ? "STATUS: KIA" : "STATUS: ATIVO";
+        }
+
+        function togKia() { isKia = !isKia; att(); salvar(); }
+        
+        function novo() { 
+            atual = null; fotoData = ""; isKia = false;
+            document.getElementById('n').value = "";
+            document.getElementById('cl').value = "";
+            document.getElementById('pb').value = "";
+            document.getElementById('idat').value = "";
+            document.getElementById('cv').value = "desconhecido";
+            document.getElementById('nv').value = 50;
+            document.getElementById('bio').value = "";
+            document.getElementById('f').style.backgroundImage = "";
+            document.getElementById('fIn').value = ""; 
+            document.getElementById('f').innerHTML = "[ FOTO 3:4 ]";
+            att(); render();
+        }
+
+        function apagar() { 
+            if(!atual) return;
+            // Apenas este mantivemos com confirmação para evitar deletar sem querer
+            if(confirm("DELETAR AGENTE PERMANENTEMENTE?")) {
+                agentes = agentes.filter(a => a.id !== atual);
+                localStorage.setItem('NEX_DB', JSON.stringify(agentes));
+                novo();
+            }
+        }
+        window.onload = render;
+    </script>
+</body>
+</html>
